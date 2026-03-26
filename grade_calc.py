@@ -5,7 +5,6 @@ The script asks for your earned raw points, computes weighted contribution,
 and compares your current weighted score to class average/std dev.
 """
 
-# Class Stats.
 CLASS_AVERAGE = 24.08
 CLASS_STD_DEV = 2.42
 
@@ -35,6 +34,19 @@ def prompt_score(label: str, max_points: float) -> float:
         return value
 
 
+def letter_grade(x_percent: float, avg_percent: float, std_percent: float) -> str:
+    """Return letter grade using the provided mean/std-dev cutoffs."""
+    if x_percent >= (avg_percent + 0.25 * std_percent):
+        return "A"
+    if (avg_percent - 2 * std_percent) <= x_percent < (avg_percent + 0.25 * std_percent):
+        return "B"
+    if (avg_percent - 4 * std_percent) <= x_percent < (avg_percent - 2 * std_percent):
+        return "C"
+    if (avg_percent - 6 * std_percent) <= x_percent < (avg_percent - 4 * std_percent):
+        return "D"
+    return "F"
+
+
 def main() -> None:
     total_weight = sum(item["weight_percent"] for item in components)
     print(f"Current Grade Calculator (configured weights total {total_weight:.2f}%)")
@@ -60,20 +72,23 @@ def main() -> None:
 
     print("\n--- Results ---")
     print(f"Current weighted score: {weighted_total:.2f} / {total_weight:.2f}")
-    #print(f"Current normalized percentage: {normalized_percent:.2f}%")
+    print(f"Current normalized percentage: {normalized_percent:.2f}%")
 
-    diff = weighted_total - CLASS_AVERAGE
-    z_score = diff / CLASS_STD_DEV if CLASS_STD_DEV != 0 else 0.0
-    relation = "above" if diff > 0 else "below" if diff < 0 else "equal to"
+    # Convert class stats to percent scale so x is in 0..100.
+    avg_percent = (CLASS_AVERAGE / total_weight) * 100 if total_weight > 0 else 0.0
+    std_percent = (CLASS_STD_DEV / total_weight) * 100 if total_weight > 0 else 0.0
+
+    diff = normalized_percent - avg_percent
+    z_score = diff / std_percent if std_percent != 0 else 0.0
+    grade = letter_grade(normalized_percent, avg_percent, std_percent)
 
     print("\nClass comparison (editable via CLASS_AVERAGE and CLASS_STD_DEV):")
-    print(f"- Class average: {CLASS_AVERAGE:.2f}")
-    print(f"- Std. Dev.: {CLASS_STD_DEV:.2f}")
-    if relation == "equal to":
-        print("- You are exactly at the class average.")
-    else:
-        print(f"- You are {abs(diff):.2f} points {relation} average.")
+    print(f"- Class average (percent): {avg_percent:.2f}%")
+    print(f"- Std. Dev. (percent): {std_percent:.2f}%")
+    print(f"- Your letter grade by curve rule: {grade}")
     print(f"- Z-score: {z_score:.2f}")
+
+
 
 
 if __name__ == "__main__":
